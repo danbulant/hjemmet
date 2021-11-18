@@ -1,13 +1,15 @@
-const { performance } = require("perf_hooks");
+// const { performance } = require("perf_hooks");
 
 const DB = 0, DT = 1, GB = 2, GT = 3, MB = 4, MT = 5, WB = 6, WT = 7;
 
-const startNow = performance.now();
-const now = () => performance.now() - startNow;
+const startNow = Date.now();
+const now = () => Date.now() - startNow;
 const log = (...str) => console.log(Math.round(now()).toString().padStart(5, "0"), ...str);
+var int = false;
 
 class Piece extends Array {
     rotate(num = 1) {
+        return ;
         for (let i = 0; i < num; i++) {
             this.push(this.shift());
         }
@@ -48,6 +50,8 @@ const pieces = [
     P(GB, MT, DB, MB),
 ];
 
+var total = 0;
+
 class Game {
     /**
      * @param {Piece[]} pieces
@@ -78,6 +82,7 @@ class Game {
         } else throw new Error("What the fuck");
         if (first % 2 === 0 && second - first !== 1) return false;
         if (first % 2 !== 0 && first - second !== 1) return false;
+        return true;
     }
 
     check() {
@@ -89,21 +94,71 @@ class Game {
         }
     }
 
+    /**
+     * Runs for each possible position (permutation), checks all rotations.
+     */
+    solve() {
+        if(this.check()) return true;
+        for(let a = 0; a < 4; a++) {
+            this.pieces[0].rotate();
+            for(let b = 0; b < 4; b++) {
+                this.pieces[1].rotate();
+                for(let c = 0; c < 4; c++) {
+                    this.pieces[2].rotate();
+                    for(let d = 0; d < 4; d++) {
+                        this.pieces[3].rotate();
+                        for(let e = 0; e < 4; e++) {
+                            this.pieces[4].rotate();
+                            for(let f = 0; f < 4; f++) {
+                                this.pieces[5].rotate();
+                                for(let g = 0; g < 4; g++) {
+                                    this.pieces[6].rotate();
+                                    for(let h = 0; h < 4; h++) {
+                                        this.pieces[7].rotate();
+                                        for(let i = 0; i < 4; i++) {
+                                            this.pieces[8].rotate();
+                                            total++;
+                                            // if(this.check()) return true;
+                                            if(int) {
+                                                console.log(this.pieces);
+                                                return;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Gets all permutations (i.e. possible positions) of the piece array, and calls solve on all of them.
+     */
     static solve() {
         const permutations = permutator(pieces);
         var i = 0;
         for(const permutation of permutations) {
             i++;
             const game = new Game(permutation);
-            if(game.check()) {
+            if(game.solve()) {
                 log("Got a HIT");
                 log(game, game.pieces);
                 return;
             }
             if(i % 10 === 0)
-                log(`total ${permutations.length}, checked ${i}`);
+                log(`total ${permutations.length}, checked ${i} int ${int}`);
+            if(int) return;
         }
     }
 }
 
+process.on("SIGINT", () => {
+    int = true;
+})
+
 Game.solve();
+console.log(total);
