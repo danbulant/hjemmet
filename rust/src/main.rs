@@ -64,6 +64,11 @@ trait Pieces {
     fn render(&self);
 }
 
+fn check_nums(f: u8, s: u8) -> bool {
+    ((f & 0b011) == (s & 0b011)) // checks if the last 2 bits match, so it's the same piece
+        && ((f & 0b100) != (s & 0b100)) // checks if the first bit doesn't match, so it's not the same orientation
+}
+
 impl Pieces for [Piece; 9] {
     fn get(self: &Self, x: usize, y: usize) -> &Piece {
         return &self[x * 3 + y];
@@ -74,39 +79,40 @@ impl Pieces for [Piece; 9] {
         let second_piece = self.get(x2, y2);
         let first_num: u8;
         let second_num: u8;
-        if x1 == x2 + 1 {
+        if x1 == x2 + 1 { // left to right
             first_num = first_piece.array[(3 + first_piece.offset) % 4];
-            second_num = second_piece.array[(1 + first_piece.offset) % 4];
-        } else if x2 > 0 && x1 == x2 - 1 {
+            second_num = second_piece.array[(1 + second_piece.offset) % 4];
+        } else if x2 > 0 && x1 == x2 - 1 { // right to left
             first_num = first_piece.array[(1 + first_piece.offset) % 4];
-            second_num = second_piece.array[(3 + first_piece.offset) % 4];
-        } else if y1 == y2 + 1 {
+            second_num = second_piece.array[(3 + second_piece.offset) % 4];
+        } else if y1 == y2 + 1 { // bottom to top
             first_num = first_piece.array[(2 + first_piece.offset) % 4];
-            second_num = second_piece.array[(0 + first_piece.offset) % 4];
-        } else if y2 > 0 && y1 == y2 - 1 {
+            second_num = second_piece.array[(0 + second_piece.offset) % 4];
+        } else if y2 > 0 && y1 == y2 - 1 { // top to bottom
             first_num = first_piece.array[(0 + first_piece.offset) % 4];
-            second_num = second_piece.array[(2 + first_piece.offset) % 4];
+            second_num = second_piece.array[(2 + second_piece.offset) % 4];
         } else {
             panic!("Invalid check {} {} {} {}", x1, y1, x2, y2);
         }
-        if ((first_num & 0b011) == (second_num & 0b011)) // checks if the last 2 bits match, so it's the same piece
-            && ((first_num & 0b100) != (second_num & 0b100)) { // checks if the first bit doesn't match, so it's not the same orientation
+        if check_nums(first_num, second_num) {
             return true;
         }
         false
     }
 
     fn check_game(self: &Self) -> bool {
-        for x in 0..3 {
-            for y in 0..3 {
-                if x < 2 && !self.check_piece(x, y, x + 1, y) {
-                    return false;
-                }
-                if y < 2 && !self.check_piece(x, y, x, y + 1) {
-                    return false;
-                }
-            }
-        }
+        if !self.check_piece(0, 0, 1, 0) { return false; }
+        if !self.check_piece(1, 0, 2, 0) { return false; }
+        if !self.check_piece(0, 1, 1, 1) { return false; }
+        if !self.check_piece(1, 1, 2, 1) { return false; }
+        if !self.check_piece(0, 2, 1, 2) { return false; }
+        if !self.check_piece(1, 2, 2, 2) { return false; }
+        if !self.check_piece(0, 0, 0, 1) { return false; }
+        if !self.check_piece(0, 1, 0, 2) { return false; }
+        if !self.check_piece(1, 0, 1, 1) { return false; }
+        if !self.check_piece(1, 1, 1, 2) { return false; }
+        if !self.check_piece(2, 0, 2, 1) { return false; }
+        if !self.check_piece(2, 1, 2, 2) { return false; }
         true
     }
     fn solve(&mut self) -> bool {
@@ -151,11 +157,9 @@ impl Pieces for [Piece; 9] {
                                             if item.offset > 4 { item.offset = 0; }
                                             unsafe {
                                                 TOTAL_ROTATIONS += 1;
-                                                if TOTAL_ROTATIONS % 100000 == 0 {
-                                                    println!("Progress rotations {}", TOTAL_ROTATIONS);
-                                                }
                                             }
                                             if self.check_game() {
+                                                self.render();
                                                 return true;
                                             }
                                         }
@@ -199,8 +203,8 @@ impl Pieces for [Piece; 9] {
     }
 }
 
-static mut TOTAL_ROTATIONS: u32 = 0;
-static mut TOTAL_PLACES: u32 = 0;
+static mut TOTAL_ROTATIONS: u128 = 0;
+static mut TOTAL_PLACES: u64 = 0;
 
 fn permutate(arr: Vec<usize>, second: &mut Vec<usize>) {
     if arr.len() == 0 {
@@ -216,8 +220,8 @@ fn permutate(arr: Vec<usize>, second: &mut Vec<usize>) {
         }
         unsafe {
             TOTAL_PLACES += 1;
-            if TOTAL_PLACES % 10 == 0 {
-                println!("Progress places {}", TOTAL_PLACES);
+            if TOTAL_PLACES % 80 == 0 {
+                println!("Progress {} - {}", TOTAL_PLACES, TOTAL_ROTATIONS);
             }
         }
     } else {
@@ -242,4 +246,5 @@ fn main() {
     println!("Permutating");
     let vec = vec![0 as usize, 1, 2, 3, 4, 5, 6, 7, 8];
     permutate(vec, &mut pieces);
+    println!("Nothing found");
 }
