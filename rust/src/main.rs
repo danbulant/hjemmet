@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Default)]
 #[derive(Clone)]
 #[derive(Debug)]
@@ -59,6 +61,7 @@ trait Pieces {
     fn check_piece(self: &Self, x1: usize, y1: usize, x2: usize, y2: usize) -> bool;
     fn check_game(self: &Self) -> bool;
     fn solve(&mut self) -> bool;
+    fn render(&self);
 }
 
 impl Pieces for [Piece; 9] {
@@ -86,9 +89,8 @@ impl Pieces for [Piece; 9] {
         } else {
             panic!("Invalid check {} {} {} {}", x1, y1, x2, y2);
         }
-        if ((first_num >> 1) & (second_num >> 1) == first_num >> 1)
-            && ((first_num & 1) ^ (second_num & 1) == 0)
-        {
+        if ((first_num & 0b011) == (second_num & 0b011)) // checks if the last 2 bits match, so it's the same piece
+            && ((first_num & 0b100) != (second_num & 0b100)) { // checks if the first bit doesn't match, so it's not the same orientation
             return true;
         }
         false
@@ -147,6 +149,12 @@ impl Pieces for [Piece; 9] {
                                             let mut item = &mut self[8];
                                             item.offset += 1;
                                             if item.offset > 4 { item.offset = 0; }
+                                            unsafe {
+                                                TOTAL_ROTATIONS += 1;
+                                                if TOTAL_ROTATIONS % 100000 == 0 {
+                                                    println!("Progress rotations {}", TOTAL_ROTATIONS);
+                                                }
+                                            }
                                             if self.check_game() {
                                                 return true;
                                             }
@@ -161,17 +169,57 @@ impl Pieces for [Piece; 9] {
         }
         false
     }
+
+    fn render(&self) {
+        let pieces = HashMap::from([
+            (DB, "DB"),
+            (DT, "DT"),
+            (GB, "GB"),
+            (GT, "GT"),
+            (MB, "MB"),
+            (MT, "MT"),
+            (WB, "WB"),
+            (WT, "WT")
+        ]);
+
+        println!("   {}   |   {}   |   {}  ", pieces.get(&self.get(0, 0).array[0]).unwrap_or(&"??"), pieces.get(&self.get(1, 0).array[0]).unwrap_or(&"??"), pieces.get(&self.get(2, 0).array[0]).unwrap_or(&"??"));
+        println!(" {}  {} | {}  {} | {}  {}", pieces.get(&self.get(0, 0).array[3]).unwrap_or(&"??"), pieces.get(&self.get(0, 0).array[1]).unwrap_or(&"??"), pieces.get(&self.get(1, 0).array[3]).unwrap_or(&"??"), pieces.get(&self.get(1, 0).array[1]).unwrap_or(&"??"), pieces.get(&self.get(2, 0).array[3]).unwrap_or(&"??"), pieces.get(&self.get(2, 0).array[1]).unwrap_or(&"??"));
+        println!("   {}   |   {}   |   {}  ", pieces.get(&self.get(0, 0).array[2]).unwrap_or(&"??"), pieces.get(&self.get(1, 0).array[2]).unwrap_or(&"??"), pieces.get(&self.get(2, 0).array[2]).unwrap_or(&"??"));
+        println!("-------------------------");
+
+        println!("   {}   |   {}   |   {}  ", pieces.get(&self.get(0, 1).array[0]).unwrap_or(&"??"), pieces.get(&self.get(1, 1).array[0]).unwrap_or(&"??"), pieces.get(&self.get(2, 1).array[0]).unwrap_or(&"??"));
+        println!(" {}  {} | {}  {} | {}  {}", pieces.get(&self.get(0, 1).array[3]).unwrap_or(&"??"), pieces.get(&self.get(0, 1).array[1]).unwrap_or(&"??"), pieces.get(&self.get(1, 1).array[3]).unwrap_or(&"??"), pieces.get(&self.get(1, 1).array[1]).unwrap_or(&"??"), pieces.get(&self.get(2, 1).array[3]).unwrap_or(&"??"), pieces.get(&self.get(2, 1).array[1]).unwrap_or(&"??"));
+        println!("   {}   |   {}   |   {}  ", pieces.get(&self.get(0, 1).array[2]).unwrap_or(&"??"), pieces.get(&self.get(1, 1).array[2]).unwrap_or(&"??"), pieces.get(&self.get(2, 1).array[2]).unwrap_or(&"??"));
+        println!("-------------------------");
+
+        println!("   {}   |   {}   |   {}  ", pieces.get(&self.get(0, 2).array[0]).unwrap_or(&"??"), pieces.get(&self.get(1, 2).array[0]).unwrap_or(&"??"), pieces.get(&self.get(2, 2).array[0]).unwrap_or(&"??"));
+        println!(" {}  {} | {}  {} | {}  {}", pieces.get(&self.get(0, 2).array[3]).unwrap_or(&"??"), pieces.get(&self.get(0, 2).array[1]).unwrap_or(&"??"), pieces.get(&self.get(1, 2).array[3]).unwrap_or(&"??"), pieces.get(&self.get(1, 2).array[1]).unwrap_or(&"??"), pieces.get(&self.get(2, 2).array[3]).unwrap_or(&"??"), pieces.get(&self.get(2, 2).array[1]).unwrap_or(&"??"));
+        println!("   {}   |   {}   |   {}  ", pieces.get(&self.get(0, 2).array[2]).unwrap_or(&"??"), pieces.get(&self.get(1, 2).array[2]).unwrap_or(&"??"), pieces.get(&self.get(2, 2).array[2]).unwrap_or(&"??"));
+        println!("-------------------------");
+    }
 }
+
+static mut TOTAL_ROTATIONS: u32 = 0;
+static mut TOTAL_PLACES: u32 = 0;
 
 fn permutate(arr: Vec<usize>, second: &mut Vec<usize>) {
     if arr.len() == 0 {
         // second contains what we want
         let mut pieces: [Piece; 9] = [PIECES[second[0]].clone(), PIECES[second[1]].clone(), PIECES[second[2]].clone(), PIECES[second[3]].clone(), PIECES[second[4]].clone(), PIECES[second[5]].clone(), PIECES[second[6]].clone(), PIECES[second[7]].clone(), PIECES[second[8]].clone()];
         if pieces.solve() {
-            println!("Foun {:?}", pieces);
+            unsafe {
+                println!("Total checked {} {}", TOTAL_ROTATIONS, TOTAL_PLACES);
+            }
+            println!("Found {:?}", pieces);
+            pieces.render();
             panic!("Done");
         }
-        println!("Not yet");
+        unsafe {
+            TOTAL_PLACES += 1;
+            if TOTAL_PLACES % 10 == 0 {
+                println!("Progress places {}", TOTAL_PLACES);
+            }
+        }
     } else {
         let max = arr.len();
         for i in 0..max {
